@@ -1,23 +1,40 @@
 const SHA256 = require('crypto-js/sha256');
 
+//STEP1: Transaction　クラスの作成
+
+//STEP2: senderAddress, recipientAddress, amountの3つをコンストラクタとして記述
+
+
+
+
+
+
+
 class Block {
     constructor(timestamp, data, previousHash) {
         this.timestamp = timestamp;
         this.data = data;
         this.previousHash = previousHash;
         this.hash = this.calculateHash();
-        //STEP1　this.nonceを追加し初期値0を代入
-
+        this.nonce = 0;
     }
 
     calculateHash() {
         return SHA256(
             this.previousHash +
             this.timestamp +
-            JSON.stringify(this.data)
-            //STEP2　this.nonceを追加
-
+            JSON.stringify(this.data) +
+            this.nonce
         ).toString();
+    }
+
+    mineBlock() {
+        while (this.hash.substring(0, 2) !== '00') {
+            this.nonce++;
+            this.hash = this.calculateHash();
+            console.log(this.hash);
+        }
+        console.log("ブロックがマイニングされました：" + this.hash);
     }
 }
 
@@ -35,8 +52,7 @@ class Blockchain {
     }
 
     addBlock(newBlock) {
-        newBlock.previousHash = this.getLatestBlock().hash;
-        newBlock.hash = newBlock.calculateHash();
+        newBlock.mineBlock();
         this.chain.push(newBlock);
     }
 
@@ -59,34 +75,13 @@ class Blockchain {
 }
 
 let originalCoin = new Blockchain();
-originalCoin.addBlock(new Block("06/02/2019", {SendCoinToA: 3}));
-originalCoin.addBlock(new Block("07/03/2019", {SendCoinToB: 8}));
 
-originalCoin.chain[1].data = {SendCoinToA: 200};
+console.log('2番目のブロックをマイニング....')
+originalCoin.addBlock(new Block("06/02/2019", { SendCoinToA: 3 }));
 
-console.log('ブロックの中身を書き換えた状態:' + originalCoin.isChainVaild());
-
-originalCoin.chain[1].hash = originalCoin.chain[1].calculateHash();
+console.log('3番目のブロックをマイニング....')
+originalCoin.addBlock(new Block("07/03/2019", { SendCoinToB: 8 }));
 
 console.log(JSON.stringify(originalCoin, null, 2));
-console.log('ハッシュ値を再計算した場合:' + originalCoin.isChainVaild());
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

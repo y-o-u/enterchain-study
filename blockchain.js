@@ -1,19 +1,17 @@
 const SHA256 = require('crypto-js/sha256');
 
-//STEP1: Transaction　クラスの作成
-
-//STEP2: senderAddress, recipientAddress, amountの3つをコンストラクタとして記述
-
-
-
-
-
-
+class Transaction {
+    constructor(senderAddress, recipientAddress, amount) {
+        this.senderAddress = senderAddress;
+        this.recipientAddress = recipientAddress;
+        this.amount = amount;
+    }
+}
 
 class Block {
-    constructor(timestamp, data, previousHash) {
+    constructor(timestamp, transactions, previousHash) {
         this.timestamp = timestamp;
-        this.data = data;
+        this.transactions = transactions;
         this.previousHash = previousHash;
         this.hash = this.calculateHash();
         this.nonce = 0;
@@ -23,7 +21,7 @@ class Block {
         return SHA256(
             this.previousHash +
             this.timestamp +
-            JSON.stringify(this.data) +
+            JSON.stringify(this.transactions) +
             this.nonce
         ).toString();
     }
@@ -32,7 +30,6 @@ class Block {
         while (this.hash.substring(0, 2) !== '00') {
             this.nonce++;
             this.hash = this.calculateHash();
-            console.log(this.hash);
         }
         console.log("ブロックがマイニングされました：" + this.hash);
     }
@@ -41,19 +38,48 @@ class Block {
 class Blockchain {
     constructor() {
         this.chain = [this.createGenesisBlock()];
+        this.pendingTransactions = [];
+        this.miningReward = 12.5;
     }
 
     createGenesisBlock() {
-        return new Block("05/02/2019", "GenesisBlock", "0");
+        return new Block("05/02/2019", [], "0");
     }
 
     getLatestBlock() {
         return this.chain[this.chain.length - 1];
     }
 
-    addBlock(newBlock) {
-        newBlock.mineBlock();
-        this.chain.push(newBlock);
+    minePendingTransactions(miningRewardAddress) {
+        let block = new Block(Date.now(), this.pendingTransactions, this.getLatestBlock().hash);
+        block.mineBlock();
+
+        console.log('ブロックが正常にマイニングされました');
+        this.chain.push(block);
+
+        this.pendingTransactions = [
+            new Transaction(null, miningRewardAddress, this.miningReward)
+        ];
+    }
+
+    createTransaction(transaction) {
+        this.pendingTransactions.push(transaction);
+    }
+
+    getBalanceOfAddress(address) {
+        let balance = 0;
+
+        for (const block of this.chain) {
+            for (const trans of block.transactions) {
+                if (trans.senderAddress === address) {
+                    balance -= trans.amount;
+                }
+                if (trans.recipientAddress === address) {
+                    balance += trans.amount;
+                }
+            }
+        }
+        return balance;
     }
 
     isChainVaild() {
@@ -76,12 +102,19 @@ class Blockchain {
 
 let originalCoin = new Blockchain();
 
-console.log('2番目のブロックをマイニング....')
-originalCoin.addBlock(new Block("06/02/2019", { SendCoinToA: 3 }));
+originalCoin.createTransaction(new Transaction(null, 'your-address', 12.5));
+originalCoin.createTransaction(new Transaction('address1', 'your-address', 10));
+originalCoin.createTransaction(new Transaction('your-address', 'address2', 2));
 
-console.log('3番目のブロックをマイニング....')
-originalCoin.addBlock(new Block("07/03/2019", { SendCoinToB: 8 }));
+console.log('\n マイニングを開始');
+originalCoin.minePendingTransactions('your-address');
 
-console.log(JSON.stringify(originalCoin, null, 2));
+console.log('\n あなたのアドレスの残高は', originalCoin.getBalanceOfAddress('your-address'));
 
+//STEP1　再度マイニングを実行
+console.log('\n マイニングを再度実行');
+originalCoin.minePendingTransactions('your-address');
+
+//STEP2　残高計算の記述
+console.log('\n あなたのアドレスの残高は', originalCoin.getBalanceOfAddress('your-address'));
 
